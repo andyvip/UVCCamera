@@ -45,7 +45,7 @@
 #define LOCAL_DEBUG 0
 
 #define LOG_TAG "libuvc/stream"
-#if 1	// デバッグ情報を出さない時1
+#if 0	// デバッグ情報を出さない時1
 	#ifndef LOG_NDEBUG
 		#define	LOG_NDEBUG		// LOGV/LOGD/MARKを出力しない時
 		#endif
@@ -457,13 +457,18 @@ static uvc_error_t _uvc_get_stream_ctrl_format(uvc_device_handle_t *devh,
 #endif
 	DL_FOREACH(format->frame_descs, frame)
 	{
+		LOGV("%d * %d, %d * %d", width, height, frame->wWidth, frame->wHeight);
+		LOGV("_uvc_get_stream_ctrl_format---------1");
+
 		if (frame->wWidth != width || frame->wHeight != height)
 			continue;
 
 		uint32_t *interval;
 
 		if (frame->intervals) {
+			LOGV("_uvc_get_stream_ctrl_format---------11");
 			for (interval = frame->intervals; *interval; ++interval) {
+				LOGV("_uvc_get_stream_ctrl_format---------111");
 				if (UNLIKELY(!(*interval))) continue;
 				uint32_t it = 10000000 / *interval;
 				LOGV("it:%d", it);
@@ -473,12 +478,15 @@ static uvc_error_t _uvc_get_stream_ctrl_format(uvc_device_handle_t *devh,
 					ctrl->bFrameIndex = frame->bFrameIndex;
 					ctrl->dwFrameInterval = *interval;
 
+				LOGV("_uvc_get_stream_ctrl_format---------112");
 					goto found;
 				}
 			}
 		} else {
+			LOGV("_uvc_get_stream_ctrl_format---------12");
 			int32_t fps;
 			for (fps = max_fps; fps >= min_fps; fps--) {
+				LOGV("_uvc_get_stream_ctrl_format---------121");
 				if (UNLIKELY(!fps)) continue;
 				uint32_t interval_100ns = 10000000 / fps;
 				uint32_t interval_offset = interval_100ns - frame->dwMinFrameInterval;
@@ -487,6 +495,7 @@ static uvc_error_t _uvc_get_stream_ctrl_format(uvc_device_handle_t *devh,
 					&& interval_100ns <= frame->dwMaxFrameInterval
 					&& !(interval_offset
 						&& (interval_offset % frame->dwFrameIntervalStep) ) ) {
+					LOGV("_uvc_get_stream_ctrl_format---------122");
 					ctrl->bmHint = (1 << 0); /* don't negotiate interval */
 					ctrl->bFormatIndex = format->bFormatIndex;
 					ctrl->bFrameIndex = frame->bFrameIndex;
@@ -539,6 +548,8 @@ uvc_error_t uvc_get_stream_ctrl_format_size_fps(uvc_device_handle_t *devh,
 
 	ENTER();
 
+	LOGD("cf=%d", cf);
+
 	uvc_streaming_interface_t *stream_if;
 	uvc_error_t result;
 
@@ -549,9 +560,11 @@ uvc_error_t uvc_get_stream_ctrl_format_size_fps(uvc_device_handle_t *devh,
 	{
 		DL_FOREACH(stream_if->format_descs, format)
 		{
+			LOGD("bFormatIndex=%d, guidFormat=%s", format->bFormatIndex, format->guidFormat);
 			if (!_uvc_frame_format_matches_guid(cf, format->guidFormat))
 				continue;
 
+			LOGD("choose format:%d", format->bFormatIndex);
 			result = _uvc_get_stream_ctrl_format(devh, stream_if, ctrl, format, width, height, min_fps, max_fps);
 			if (!result) {	// UVC_SUCCESS
 				goto found;
@@ -1862,7 +1875,7 @@ uvc_error_t uvc_stream_stop(uvc_stream_handle_t *strmh) {
 void uvc_stream_close(uvc_stream_handle_t *strmh) {
 	UVC_ENTER();
 
-	if (!strmh) { UVC_EXIT_VOID() };
+	if (!strmh) { UVC_EXIT_VOID(); };
 
 	if (strmh->running)
 		uvc_stream_stop(strmh);

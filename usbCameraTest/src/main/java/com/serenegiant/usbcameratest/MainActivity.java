@@ -25,7 +25,9 @@ package com.serenegiant.usbcameratest;
 
 import android.graphics.SurfaceTexture;
 import android.hardware.usb.UsbDevice;
+import android.nfc.Tag;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Surface;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -45,6 +47,7 @@ import com.serenegiant.widget.SimpleUVCCameraTextureView;
 import java.nio.ByteBuffer;
 
 public final class MainActivity extends BaseActivity implements CameraDialog.CameraDialogParent {
+	private static final String TAG = "ZLJ";
 
 	private final Object mSync = new Object();
     // for accessing USB and USB camera
@@ -189,16 +192,19 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 						mPreviewSurface = null;
 					}
 					try {
-						camera.setPreviewSize(UVCCamera.DEFAULT_PREVIEW_WIDTH, UVCCamera.DEFAULT_PREVIEW_HEIGHT, UVCCamera.FRAME_FORMAT_MJPEG);
+						camera.setPreviewSize(UVCCamera.DEFAULT_PREVIEW_WIDTH * 2, UVCCamera.DEFAULT_PREVIEW_HEIGHT, UVCCamera.FRAME_FORMAT_YUYV);
+						//camera.setPreviewSize(UVCCamera.DEFAULT_PREVIEW_WIDTH * 2, UVCCamera.DEFAULT_PREVIEW_HEIGHT, UVCCamera.FRAME_FORMAT_MJPEG);
 					} catch (final IllegalArgumentException e) {
 						// fallback to YUV mode
+						Log.d(TAG, e.toString());
 						try {
-							camera.setPreviewSize(UVCCamera.DEFAULT_PREVIEW_WIDTH, UVCCamera.DEFAULT_PREVIEW_HEIGHT, UVCCamera.DEFAULT_PREVIEW_MODE);
+							camera.setPreviewSize(UVCCamera.DEFAULT_PREVIEW_WIDTH * 2, UVCCamera.DEFAULT_PREVIEW_HEIGHT, UVCCamera.FRAME_FORMAT_MJPEG);
 						} catch (final IllegalArgumentException e1) {
 							camera.destroy();
 							return;
 						}
 					}
+	
 					final SurfaceTexture st = mUVCCameraView.getSurfaceTexture();
 					if (st != null) {
 						mPreviewSurface = new Surface(st);

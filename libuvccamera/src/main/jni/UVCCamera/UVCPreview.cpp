@@ -26,7 +26,8 @@
 #include <linux/time.h>
 #include <unistd.h>
 
-#if 1	// set 1 if you don't need debug log
+#define LOG_TAG "UVCCamera"
+#if 0	// set 1 if you don't need debug log
 	#ifndef LOG_NDEBUG
 		#define	LOG_NDEBUG		// w/o LOGV/LOGD/MARK
 	#endif
@@ -34,14 +35,14 @@
 #else
 	#define USE_LOGALL
 	#undef LOG_NDEBUG
-//	#undef NDEBUG
+	#undef NDEBUG
 #endif
 
 #include "utilbase.h"
 #include "UVCPreview.h"
 #include "libuvc_internal.h"
 
-#define	LOCAL_DEBUG 0
+#define	LOCAL_DEBUG 1
 #define MAX_FRAME 4
 #define PREVIEW_PIXEL_BYTES 4	// RGBA/RGBX
 #define FRAME_POOL_SZ MAX_FRAME + 2
@@ -169,6 +170,8 @@ inline const bool UVCPreview::isRunning() const {return mIsRunning; }
 
 int UVCPreview::setPreviewSize(int width, int height, int min_fps, int max_fps, int mode, float bandwidth) {
 	ENTER();
+
+	LOGD("setPreviewSize:(%d, %d)->(%d, %d), %d->%d, ", requestWidth, requestHeight, width, height, requestMode, mode);
 	
 	int result = 0;
 	if ((requestWidth != width) || (requestHeight != height) || (requestMode != mode)) {
@@ -383,11 +386,30 @@ int UVCPreview::stopPreview() {
 	RETURN(0, int);
 }
 
+
+void UVCPreview::b11111(uvc_frame_t *frame, UVCPreview *preview){
+	void *data = calloc(preview->frameBytes, sizeof(char));
+	size_t actual_bytes = frame->actual_bytes;
+
+	frame->actual_bytes = frame->data_bytes = preview->frameBytes;
+
+	memcpy(data, frame->data, actual_bytes);
+	frame->data = data;
+	free(frame->data);
+}
+
 //**********************************************************************
 //
 //**********************************************************************
 void UVCPreview::uvc_preview_frame_callback(uvc_frame_t *frame, void *vptr_args) {
 	UVCPreview *preview = reinterpret_cast<UVCPreview *>(vptr_args);
+	LOGD("uvc_preview_frame_callback: format=%d,actual_bytes=%d/%d(%d,%d/%d,%d)",
+	frame->frame_format, frame->actual_bytes, preview->frameBytes,
+	frame->width, frame->height, preview->frameWidth, preview->frameHeight);
+	// if (frame->actual_bytes > preview->frameBytes*0.5)
+	// {
+	// 	frame->actual_bytes = frame->data_bytes = preview->frameBytes*0.5;
+	// }
 	if UNLIKELY(!preview->isRunning() || !frame || !frame->frame_format || !frame->data || !frame->data_bytes) return;
 	if (UNLIKELY(
 		((frame->frame_format != UVC_FRAME_FORMAT_MJPEG) && (frame->actual_bytes < preview->frameBytes))
@@ -400,6 +422,7 @@ void UVCPreview::uvc_preview_frame_callback(uvc_frame_t *frame, void *vptr_args)
 #endif
 		return;
 	}
+
 	if (LIKELY(preview->isRunning())) {
 		uvc_frame_t *copy = preview->get_frame(frame->data_bytes);
 		if (UNLIKELY(!copy)) {

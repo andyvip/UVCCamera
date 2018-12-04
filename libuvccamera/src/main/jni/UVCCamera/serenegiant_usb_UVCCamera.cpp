@@ -22,7 +22,8 @@
  * Files in the jni/libjpeg, jni/libusb, jin/libuvc, jni/rapidjson folder may have a different license, see the respective files.
 */
 
-#if 1	// デバッグ情報を出さない時
+#define LOG_TAG "UVCCamera"
+#if 0	// デバッグ情報を出さない時1
 	#ifndef LOG_NDEBUG
 		#define	LOG_NDEBUG		// LOGV/LOGD/MARKを出力しない時
 		#endif
@@ -31,6 +32,7 @@
 	#define USE_LOGALL
 	#undef LOG_NDEBUG
 	#undef NDEBUG
+	#define GET_RAW_DESCRIPTOR
 #endif
 
 #include <jni.h>
@@ -206,6 +208,7 @@ static jobject nativeGetSupportedSize(JNIEnv *env, jobject thiz,
 	if (LIKELY(camera)) {
 		char *c_str = camera->getSupportedSize();
 		if (LIKELY(c_str)) {
+			LOGV("nativeGetSupportedSize:%s", c_str);
 			result = env->NewStringUTF(c_str);
 			free(c_str);
 		}
